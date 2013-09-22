@@ -1,0 +1,137 @@
+/**
+ * Module dependencies.
+ */
+
+var express = require('express')
+  , routes = require('./routes')
+  , http = require('http')
+  , cp = require('child_process')
+  , path = require('path');
+
+var app = express();
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+server.listen(8080);
+
+var guestNumber = 1;
+var nickNames = {};
+var namesUsed = [];
+var captureFiles = {};
+var filesUsed = [];
+var currentRoom = {};
+
+// all environments
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+app.set('echld', __dirname + '/echld.js');
+app.use(express.favicon());
+app.use(express.logger('dev'));
+app.use(express.bodyParser());
+app.use(express.methodOverride());
+app.use(app.router);
+app.use(express.static(path.join(__dirname, 'public')));
+
+// development only
+if ('development' == app.get('env')) {
+  app.use(express.errorHandler());
+}
+
+var child = cp.fork(app.get('echld'));
+child.on('message', function(m) {
+	if(m.status == 'interfaceListSuccess') {
+		console.log('PARENT got message for interfaceList:', m);
+		io.sockets.in('session' + m.id).emit('interfaceListMessage', m.info);
+	}
+	else if(m.status == 'fileListSuccess') {
+		console.log('PARENT got message for fileList:', m);
+		io.sockets.in('session' + m.id).emit('fileListMessage', m.info);
+	}
+	else if(m.status == 'dissectSuccess') {
+		console.log('PARENT got message for dissect:', m);
+		io.sockets.in('session' + m.id).emit('dissectMessage', m.info);
+	}
+	else if(m.status == 'stopSuccess') {
+		console.log('PARENT got message for stop:', m);
+		io.sockets.in('session' + m.id).emit('stopMessage', m.info);
+	}
+	else if(m.status == 'captureSuccess') {
+		console.log('PARENT got message for capture:', m);
+		io.sockets.in('session' + m.id).emit('captureMessage', m.info);
+	}
+	else if(m.status == 'openFileSuccess') {
+		console.log('PARENT got message for open file:', m);
+		io.sockets.in('session' + m.id).emit('openFileMessage', m.info);
+	}
+	else if(m.status == 'saveFileSuccess') {
+		console.log('PARENT got message for save file:', m);
+		io.sockets.in('session' + m.id).emit('saveFileMessage', m.info);
+	}
+});
+
+app.get('/', function(req, res){
+		res.render('shark', {
+			title: 'JsonShark'
+		});
+	}
+);
+
+io.sockets.on('connection', function (socket) {
+	guestNumber = assignGuestName(socket, guestNumber, nickNames, namesUsed);
+	joinRoom(socket, 'session' + guestNumber);
+	
+	socket.on('interfaceList', function (message) {
+		console.log('server got message:', message);
+		child.send({type : 'interfaceList', id : guestNumber});
+	});
+	socket.on('fileList', function (message) {
+		console.log('server got message:', message);
+		child.send({type : 'fileList', id : guestNumber});
+	});
+	socket.on('openFile', function (message) {
+		console.log('server got message:', message);
+		child.send({type: 'openFile', id : guestNumber, content: message});
+	});
+	socket.on('capture', function (message) {
+		console.log('server got message:', message);
+		child.send({type: 'capture', id : guestNumber, content: message});
+	});
+	socket.on('dissect', function (message) {
+		console.log('server got message:', message);
+		child.send({type: 'dissect', id : guestNumber, content: message});
+	});
+	socket.on('stop', function (message) {
+		console.log('server got message:', message);
+		child.send({type: 'stop', id : guestNumber});
+	});
+	socket.on('saveFile', function (message) {
+		console.log('server got message:', message);
+		child.send({type: 'save', id : guestNumber});
+	});
+	handleClientDisconnection(socket, nickNames, namesUsed);
+});
+
+function assignGuestName(socket, guestNumber, nickNames, namesUsed) {
+	var name = 'Guest' + guestNumber;
+	nickNames[socket.id] = name;
+	socket.emit('nameResult', {
+		success: true,
+		name: name
+	});
+	namesUsed.push(name);
+	return guestNumber + 1;
+}
+
+function handleClientDisconnection(socket) {
+	socket.on('disconnect', function() {
+		var nameIndex = namesUsed.indexOf(nickNames[socket.id]);
+		delete namesUsed[nameIndex];
+		delete nickNames[socket.id];
+		child.send({type: 'close', id : guestNumber});
+	});
+}
+
+function joinRoom(socket, room) {
+	socket.join(room);
+	currentRoom[socket.id] = room;
+	socket.emit('joinResult', {room: room});
+}

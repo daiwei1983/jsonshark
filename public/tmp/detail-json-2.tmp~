@@ -1,0 +1,55 @@
+{
+	"protocols": [
+		{
+			"showname": "Frame 1: 46 bytes on wire (368 bits), 46 bytes captured (368 bits) on interface 0",
+			"fields": [
+				{
+					"showname": "Interface id: 0"
+				},
+				{
+					"showname": "Encapsulation type: Ethernet (1)"
+				},
+				{
+					"showname": "Arrival Time: Aug 21, 2013 23:39:16.432100000 PDT"
+				}
+			]
+		},
+		{
+			"showname": "Ethernet II, Src: 1c:fa:68:c9:1a:a2 (1c:fa:68:c9:1a:a2), Dst: 01:00:5e:00:00:01 (01:00:5e:00:00:01)",
+			"fields": [
+				{
+					"showname": "Destination: 01:00:5e:00:00:01 (01:00:5e:00:00:01)",
+					"fields": [
+						{
+							"showname": "Address: 01:00:5e:00:00:01 (01:00:5e:00:00:01)"
+						},
+						{
+							"showname": ".... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)"
+						},
+						{
+							"showname": ".... ...1 .... .... .... .... = IG bit: Group address (multicast/broadcast)"
+						}
+					]
+				},
+				{
+					"showname": "Source: 1c:fa:68:c9:1a:a2 (1c:fa:68:c9:1a:a2)",
+					"fields": [
+						{
+							"showname": "Address: 1c:fa:68:c9:1a:a2 (1c:fa:68:c9:1a:a2)"
+						},
+						{
+							"showname": ".... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)"
+						},
+						{
+							"showname": ".... ...0 .... .... .... .... = IG bit: Individual address (unicast)"
+						}
+					]
+				},
+				{
+					"showname": "Type: IP (0x0800)"
+				}
+			]
+		},
+		{
+		}
+}

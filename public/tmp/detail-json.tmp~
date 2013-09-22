@@ -1,0 +1,78 @@
+{
+	"protocols": [
+		{
+			"name": "geninfo",
+			"pos": "0",
+			"showname": "General information",
+			"size": "60",
+			"fields": [
+				{
+					"name": "num",
+					"pos": "0",
+					"show": "1",
+					"showname": "Number",
+					"value": "1",
+					"size": "60"
+				},
+				{
+					"name": "len",
+					"pos": "0",
+					"show": "60",
+					"showname": "Frame Length",
+					"value": "3c",
+					"size": "60"
+				}
+			]
+		},
+		{
+			"name": "frame",
+			"showname": "Frame 1: 60 bytes on wire (480 bits), 60 bytes captured (480 bits) on interface 0",
+			"pos": "0",
+			"size": "60",
+			"fields": [
+				{
+					"name": "frame.interface_id",
+					"showname": "Interface id: 0", 
+					"size": "60",
+					"pos": "0",
+					"show": "1"
+				}
+			]
+		},
+		{
+			"name": "eth",
+			"showname": "Ethernet II, Src: Hewlett-_04:dd:b8 (00:22:64:04:dd:b8), Dst: IntelCor_6e:55:d4 (00:21:6a:6e:55:d4)",
+			"pos": "0",
+			"size": "14",
+			"fields": [
+				{
+					"name": "eth.dst",
+					"showname": "Destination: IntelCor_6e:55:d4 (00:21:6a:6e:55:d4)", 
+					"size": "6",
+					"pos": "0",
+					"show": "00:21:6a:6e:55:d4",
+					"value": "00216a6e55d4",
+					"fields": [
+						{
+							"name": "eth.addr",
+							"showname": "Address: IntelCor_6e:55:d4 (00:21:6a:6e:55:d4)",
+							"size": "6",
+							"pos": "0",
+							"show": "00:21:6a:6e:55:d4",
+							"value": "00216a6e55d4"
+						},
+						{
+							"name": "eth.lg",
+							"showname": ".... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)",
+							"size": "3",
+							"pos": "0",
+							"show": "0",
+							"value": "0",
+							"unmaskedvalue": "00216a"
+						}
+					]
+				}
+			]
+		}	
+	]
+}

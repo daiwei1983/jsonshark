@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function Toggle() {
+var table=document.getElementById("myTable");
+var row = table.insertRow();
+
+	var el = document.getElementById("ToggleTarget");
+	if (el.style.display == "block") {
+		el.style.display = "none";
+	}
+	else {
+		el.style.display = "block";
+	}
+}
+
+function myFunction(no)
+{
+alert(no);
+var btn=document.createElement("a");
+var abc = 13;
+btn.setAttribute('href', "javascript:myFunction("+abc+");");
+var t=document.createTextNode("CLICK ME");
+btn.appendChild(t);
+document.body.appendChild(btn);
+};
+
+function displayResult()
+{
+
+var table=document.getElementById("myTable");
+var row=table.insertRow(1);
+var cell1=row.insertCell(0);
+cell1.colSpan=10;
+var btn=document.createElement("a");
+var abc = 13;
+btn.setAttribute('href', "javascript:myFunction("+abc+");");
+var t=document.createTextNode("CLICK ME");
+btn.appendChild(t);
+//var cell2=row.insertCell(1);
+
+cell1.appendChild(btn);
+
+//cell2.innerHTML="New";
+}
+</script>
+</head>
+<body>
+
+<table id="myTable" border="1">
+  <tr>
+    <td><a href="javascript:Toggle();">Toggle me...</a></td>
+    <td>cell 2</td>
+    <td>cell 2</td>
+  </tr>
+  <tr>
+    <td>cell 3</td>
+    <td colSpan = "10">cell 4</td>
+  </tr>
+</table>
+<br>
+<button type="button" onclick="displayResult()">Insert new row</button>
+
+</body>
+</html>
+

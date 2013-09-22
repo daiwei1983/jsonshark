@@ -1,0 +1,308 @@
+<!DOCTYPE html/>
+<html>
+	<head>
+		<title><%= title %></title>
+		<link rel='stylesheet' href='/stylesheets/style.css' />
+		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	</head>
+	<body>
+		Input information:
+		<h1><%= title %></h1>
+		<p>Capture packets</p>
+			<button id="interfaceListButton" onclick="interfaceList()">Show Interfaces</button>
+			<button id="fileListButton" onclick="fileList()">Show Files</button>
+		<form id="captureInput">
+			<div id='options'>
+				<h1>Stop after (seconds)</h1>
+				<input type='text', id='optionsInput', value='10'/><br>
+			</div>
+			<div id='filter'>
+				<h1>Filter</h1>
+				<input type='text', id='filterInput', value=''/><br>
+			</div>
+			<div id='interfaces'>
+				<h1>Interfaces</h1>
+			</div>
+			<div id='files'>
+				<h1>Files</h1>
+			</div>
+		</form>
+		<button id="openFileButton" onclick="openFile()" value="open file">Open File</button> <button id="captureButton" onclick="capture()" value="capture">Capture</button>
+		<!--form id="file" enctype='multipart/form-data'>
+			<h1>Open files</h1>
+			<input type='file', name='file'/><br>
+		</form-->
+		<h1>Packet results:</h1>
+		<button id="stop" onclick="stop()" disabled>Stop</button> <button id="save" onclick="save()" disabled>Save as</button>
+		<!-- form action="/" method='get'><input type="submit" value="Go back to capture/open file"></form -->
+		<div id="results">		
+			<table id="packets" border="1"></table>
+		</div>
+		<script type="text/javascript">
+			var packets = document.getElementById("packets");
+			var captureInput = document.getElementById("captureInput");
+			var lastMessageElement = null;
+			var socket = io.connect('http://localhost');
+			var fieldId = 0;
+			socket.on('captureMessage', function(content) {
+				console.log('test capture message received!');
+				addPacket(content);
+			});
+			socket.on('openFileMessage', function(content) {
+				console.log('test openFile message received!');
+				addPacket(content);
+			});
+			socket.on('dissectMessage', function(content) {
+				console.log('test dissect message received!');
+				addDissect(content);
+			});
+			socket.on('interfaceListMessage', function(content) {
+				console.log('test interfaceList message received!');
+				addInterfaceList(content);
+			});
+			socket.on('fileListMessage', function(content) {
+				console.log('test fileList message received!');
+				addFileList(content);
+			});
+			function dissectById(id) {
+				var detail = document.getElementById("detail" + id);
+				if (detail.style.display == "none") {
+					detail.style.display = "block";
+					if (detail.rows.length == 0) {
+						var dissectMessage = new Object();
+						dissectMessage.packetId = id;
+						socket.emit('dissect', dissectMessage);
+					}
+				}
+				else if (detail.style.display == "block") {
+					detail.style.display = "none";
+				}
+			}
+			function addDissect(message) {
+				var detail = document.getElementById("detail" + message.packetId);
+				protocols = message.protocols;
+				for(var i=0; i<protocols.length; i++) {
+					var protocol = protocols[i];
+					console.log("begin to add protocol " + protocol.showname);
+					console.log("the number of protocols " + protocols.length);
+					var row = detail.insertRow(detail.rows.length);
+					var cell = row.insertCell(0);
+					var protocolContent = document.createElement("a");
+					if (protocol.fields != null) {
+						if(protocol.name == undefined) {
+							protocol.name = fieldId;
+							fieldId++;
+						}
+						protocolContent.setAttribute('href', "javascript:toggleFields(\""+protocol.name+"\");");
+						var fieldRow = detail.insertRow(detail.rows.length);
+						var fieldCell = fieldRow.insertCell(0);
+						fieldCell.colSpan = 10;
+						var fieldTable = document.createElement("table");
+						fieldTable.id = "fields" + protocol.name;
+						fieldTable.style.display = "none";
+						fieldCell.appendChild(fieldTable);
+						addFields(fieldTable, protocol.fields);
+						console.log("I am done adding fields for " + protocol.name);
+					}
+					var t = document.createTextNode(protocol.showname);
+					protocolContent.appendChild(t);
+					cell.appendChild(protocolContent);
+				} 
+			}
+			function addFields(table, fields) {
+				for(var i=0; i<fields.length; i++) {
+					var field = fields[i];
+					console.log("begin to add field " + field.showname);
+					var row = table.insertRow(table.rows.length);
+					var cell = row.insertCell(0);
+					var fieldContent = document.createElement("a");
+					if (field.fields != null) {
+						if(field.name == undefined) {
+							field.name = fieldId;
+							fieldId++;
+						}
+						fieldContent.setAttribute('href', "javascript:toggleFields(\""+field.name+"\");");
+						var fieldRow = table.insertRow(table.rows.length);
+						var fieldCell = fieldRow.insertCell(0);
+						fieldCell.colSpan = 10;
+						var fieldTable = document.createElement("table");
+						fieldTable.id = "fields" + field.name;
+						fieldTable.style.display = "none";
+						fieldCell.appendChild(fieldTable);
+						addFields(fieldTable, field.fields);
+					}
+					var t = document.createTextNode(field.showname);
+					fieldContent.appendChild(t);
+					cell.appendChild(fieldContent);
+				}
+			}
+			function toggleFields(id) {
+				var field = document.getElementById("fields" + id);
+				if (field.style.display == "none") {
+					console.log("begin to make field visible.");
+					field.style.display = "block";
+				}
+				else if (field.style.display == "block") {
+					console.log("begin to make field invisible.");
+					field.style.display = "none";				
+				}
+			}
+			function addPacket(message) {
+				packetNumber = packets.rows.length;
+				var index = 0;
+				if (packetNumber == 0) {
+					var row = packets.insertRow(packetNumber);
+					for (var key in message) {
+						var cell = row.insertCell(index);
+						var section = document.createElement("a");
+						var t = document.createTextNode(key);
+						section.appendChild(t);
+						cell.appendChild(section);
+						index++;
+					}
+					packetNumber++;
+				}
+				var row = packets.insertRow(packetNumber);
+				row.id = "summary" + message.No;
+				index = 0;
+				for (var key in message) {
+					//row.style.backgroundColor = "#C0C0C0";
+					var cell = row.insertCell(index);
+					var section=document.createElement("a");
+					section.setAttribute('href', "javascript:dissectById("+message.No+");");
+					var t=document.createTextNode(message[key]);
+					section.appendChild(t);
+					cell.appendChild(section);
+					index++;
+				}
+				packetNumber++;
+				var row = packets.insertRow(packetNumber);
+				var cell = row.insertCell(0);
+				cell.colSpan = 10;
+				var section = document.createElement("table");
+				section.id = "detail" + message.No;
+				cell.appendChild(section);
+				section.style.display = "none";
+
+				/*var newMessageElement = document.createElement('div');
+				var newMessageText = document.createTextNode(message);
+				newMessageElement.appendChild(newMessageText);
+				console.log(messagesElement);
+				messagesElement.insertBefore(newMessageElement, lastMessageElement);
+				lastMessageElement = newMessageElement;*/
+			}
+			/*function addInterface(interfaceName) {
+				var newInput = document.createElement('input');
+				newInput.type = "checkbox";
+				newInput.name = "interface";
+				newInput.value = interfaceName;
+				captureInput.appendChild(newInput);
+				var t=document.createTextNode(interfaceName);
+				captureInput.appendChild(t);
+				
+			interfaceList}*/
+			function addInterfaceList(message) {
+				captureInput.removeChild(document.getElementById('interfaces'));
+				//console.log(captureInput.childNodes[0].id);
+				var newInterfaces = document.createElement('div');
+				newInterfaces.id = "interfaces";
+ 				var h=document.createElement("h1");
+				var t=document.createTextNode("Interfaces");
+				h.appendChild(t);
+				newInterfaces.appendChild(h);
+				for(var i=0; i<message.interfaces.length; i++) {
+					console.log('interface: ' + message.interfaces[i].name);
+					var newInterface = document.createElement('input');
+					newInterface.type = "checkbox";
+					newInterface.name = "interface";
+					newInterface.value = message.interfaces[i].name;
+					newInterfaces.appendChild(newInterface);
+					var t=document.createTextNode(message.interfaces[i].name);
+					newInterfaces.appendChild(t);
+				}
+				captureInput.appendChild(newInterfaces);		
+			}
+			function addFileList(message) {
+				captureInput.removeChild(document.getElementById('files'));
+				//console.log(captureInput.childNodes[0].id);
+				var newFiles = document.createElement('div');
+				newFiles.id = "files";
+ 				var h=document.createElement("h1");
+				var t=document.createTextNode("Files");
+				h.appendChild(t);
+				newFiles.appendChild(h);
+				for(var i=0; i<message.files.length; i++) {
+					console.log('file: ' + message.files[i].name);
+					var newFile = document.createElement('input');
+					newFile.type = "checkbox";
+					newFile.name = "file";
+					newFile.value = message.files[i].name;
+					newFiles.appendChild(newFile);
+					var t=document.createTextNode(message.files[i].name);
+					newFiles.appendChild(t);
+				}
+				captureInput.appendChild(newFiles);		
+			}
+			function interfaceList() {
+				socket.emit('interfaceList', 'some content...');
+			}
+			function capture() {
+				var captureMessage = new Object();
+				var interfaces = new Array();
+				var input = document.getElementsByName("interface");
+				for (var i=0;i<input.length;i++) {
+					if (input[i].checked)
+						interfaces.push(input[i].value);
+					/*if(input.elements[i].name == "interface")
+						interfaces.push(input.elements[i].value);
+					else if(input.elements[i].name == "options")
+						captureMessage.options = input.elements[i].value;
+					else if(input.elements[i].name == "filter")
+						captureMessage.filter = input.elements[i].value;*/
+				}
+				captureMessage.interfaces = interfaces;
+				captureMessage.options = document.getElementById("optionsInput").value;
+				captureMessage.filter = document.getElementById("filterInput").value;
+				socket.emit('capture', captureMessage);
+				document.getElementById("captureButton").disabled = true;
+				document.getElementById("save").disabled = true;
+				document.getElementById("stop").disabled = false;
+			}
+			function openFile() {
+				var openFileMessage = new Object();
+				var files = new Array();
+				var input = document.getElementsByName("file");
+				for (var i=0;i<input.length;i++) {
+					if (input[i].checked)
+						files.push(input[i].value);
+					/*if(input.elements[i].name == "interface")
+						interfaces.push(input.elements[i].value);
+					else if(input.elements[i].name == "options")
+						captureMessage.options = input.elements[i].value;
+					else if(input.elements[i].name == "filter")
+						captureMessage.filter = input.elements[i].value;*/
+				}
+				openFileMessage.files = files;
+				openFileMessage.filter = document.getElementById("filterInput").value;
+				socket.emit('openFile', openFileMessage);
+				document.getElementById("openFileButton").disabled = true;
+				document.getElementById("save").disabled = true;
+				document.getElementById("stop").disabled = true;
+			}
+			function stop() {
+				socket.emit('stop', 'some parameters ...');
+				document.getElementById("stop").disabled = true;
+				document.getElementById("save").disabled = false;
+				document.getElementById("captureButton").disabled = false;
+
+			}
+			function save() {
+				socket.emit('saveFile', 'some parameters ...');
+			
+			}
+			function fileList() {
+				socket.emit('fileList', 'some content...');
+			}
+		</script>
+	</body>
+</html>
