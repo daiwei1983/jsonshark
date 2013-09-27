@@ -6,7 +6,6 @@
 		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
 	</head>
 	<body>
-		Input information:
 		<h1><%= title %></h1>
 		<p>Capture packets</p>
 			<button id="interfaceListButton" onclick="interfaceList()">Show Interfaces</button>
@@ -27,7 +26,7 @@
 				<h1>Files</h1>
 			</div>
 		</form>
-		<button id="openFileButton" onclick="openFile()" value="open file">Open File</button> <button id="captureButton" onclick="capture()" value="capture">Capture</button>
+		<button id="openFileButton" onclick="openFile()" value="open file" disabled>Open File</button> <button id="captureButton" onclick="capture()" value="capture" disabled>Capture</button>
 		<!--form id="file" enctype='multipart/form-data'>
 			<h1>Open files</h1>
 			<input type='file', name='file'/><br>
@@ -46,23 +45,37 @@
 			var fieldId = 0;
 			socket.on('captureMessage', function(content) {
 				console.log('test capture message received!');
-				addPacket(content);
+				if (content.No == '-1')
+					document.getElementById("captureButton").disabled = false;
+				else
+					addPacket(content);
 			});
 			socket.on('openFileMessage', function(content) {
 				console.log('test openFile message received!');
 				addPacket(content);
+				document.getElementById("openFileButton").disabled = false;
+				//document.getElementById("captureButton").disabled = true;
 			});
 			socket.on('dissectMessage', function(content) {
 				console.log('test dissect message received!');
 				addDissect(content);
 			});
+			socket.on('stopMessage', function(content) {
+				console.log('test stop message received!');
+				document.getElementById("stop").disabled = true;
+				document.getElementById("save").disabled = false;
+				document.getElementById("captureButton").disabled = false;
+			});
 			socket.on('interfaceListMessage', function(content) {
 				console.log('test interfaceList message received!');
 				addInterfaceList(content);
+				//document.getElementById("openFileButton").disabled = true;
+				document.getElementById("captureButton").disabled = false;
 			});
 			socket.on('fileListMessage', function(content) {
 				console.log('test fileList message received!');
 				addFileList(content);
+				document.getElementById("openFileButton").disabled = false;
 			});
 			function dissectById(id) {
 				var detail = document.getElementById("detail" + id);
@@ -250,7 +263,7 @@
 				var captureMessage = new Object();
 				var interfaces = new Array();
 				var input = document.getElementsByName("interface");
-				for (var i=0;i<input.length;i++) {
+				for (var i=0; i<input.length; i++) {
 					if (input[i].checked)
 						interfaces.push(input[i].value);
 					/*if(input.elements[i].name == "interface")
@@ -259,6 +272,10 @@
 						captureMessage.options = input.elements[i].value;
 					else if(input.elements[i].name == "filter")
 						captureMessage.filter = input.elements[i].value;*/
+				}
+				var packetNumber = packets.rows.length;
+				for (var i=0; i<packetNumber; i++) {
+					packets.deleteRow(0);
 				}
 				captureMessage.interfaces = interfaces;
 				captureMessage.options = document.getElementById("optionsInput").value;
@@ -272,7 +289,7 @@
 				var openFileMessage = new Object();
 				var files = new Array();
 				var input = document.getElementsByName("file");
-				for (var i=0;i<input.length;i++) {
+				for (var i=0;i<input.length; i++) {
 					if (input[i].checked)
 						files.push(input[i].value);
 					/*if(input.elements[i].name == "interface")
@@ -282,11 +299,15 @@
 					else if(input.elements[i].name == "filter")
 						captureMessage.filter = input.elements[i].value;*/
 				}
+				var packetNumber = packets.rows.length;
+				for (var i=0; i<packetNumber; i++) {
+					packets.deleteRow(0);
+				}
 				openFileMessage.files = files;
 				openFileMessage.filter = document.getElementById("filterInput").value;
 				socket.emit('openFile', openFileMessage);
 				document.getElementById("openFileButton").disabled = true;
-				document.getElementById("save").disabled = true;
+				document.getElementById("save").disabled = false;
 				document.getElementById("stop").disabled = true;
 			}
 			function stop() {

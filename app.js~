@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -56,6 +55,10 @@ child.on('message', function(m) {
 		io.sockets.in('session' + m.id).emit('stopMessage', m.info);
 	}
 	else if(m.status == 'captureSuccess') {
+		console.log('PARENT got message for capture:', m);
+		io.sockets.in('session' + m.id).emit('captureMessage', m.info);
+	}
+	else if(m.status == 'captureEnd') {
 		console.log('PARENT got message for capture:', m);
 		io.sockets.in('session' + m.id).emit('captureMessage', m.info);
 	}

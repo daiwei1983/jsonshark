@@ -61,7 +61,9 @@ EchldWrapper::~EchldWrapper() {};
 //Clean up zombie child processes, if necessary.
 void cleanupChildProcess(int signalNumber) {
 	int status;
+	printf("I am waiting, and my pid is %d.\n", getpid());
 	wait(&status);
+	printf("I am done waiting.\n");
 }
 
 //Initialize the EchldWrapper
@@ -182,7 +184,7 @@ Handle<Value> EchldWrapper::FileList(const Arguments& args) {
 	/* Open the command for reading. */
 	fp = popen(cmd, "r");
 	if (fp == NULL) {
-    		printf("Failed to run command \"tshark -D\"\n" );
+    		printf("Failed to run command \"ls -1\"\n" );
 		exit;
 	}
 
@@ -315,7 +317,7 @@ const char* ToCString(const v8::String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
 }
 
-//Function used to extract simple packet information from the detailed parsed packet information, so as to give a list of the summerized packets
+//Function used to extract simple packet information from the detailed parsed packet information, so as to give a list of the summarized packets
 void parseSimpleOutput(char *simpleOutput, char *path) {
 	if(strlen(simpleOutput) == 0) {
 		strcpy(simpleOutput, "{");
@@ -571,7 +573,7 @@ void parseOutputBackup(FILE *fp, FILE *simpleTmp, FILE *detailTmp) {
 	fclose(detailTmp);
 }
 
-//Function used to return a summerized list of the captured packets, which are organized as json strings
+//Function used to return a summarized list of the captured packets, which are organized as json strings
 Handle<Value> EchldWrapper::Capture(const Arguments& args) {
 	HandleScope scope;
 	if (args.Length() < 4) {
@@ -657,7 +659,9 @@ Handle<Value> EchldWrapper::Capture(const Arguments& args) {
 	indexTmp = fopen(indexTmpName, "w+");
 	
 	pid_t jsonPid;
+	//printf("begin to fork.\n");
 	jsonPid = fork();
+	//printf("Just forked and pid id is %d.\n", jsonPid);
 	if (jsonPid < 0) {
 		printf("Unable to parse output\n");
 		exit(1);
@@ -668,7 +672,11 @@ Handle<Value> EchldWrapper::Capture(const Arguments& args) {
 	}
 	else {
 		//child process
-		parseOutput(fp, simpleTmp, detailTmp, indexTmp);		
+		printf("Begin to prase the output!");
+		parseOutput(fp, simpleTmp, detailTmp, indexTmp);
+		fprintf(simpleTmp, "{\"No\": \"-1\"},\n");
+		fflush(simpleTmp);
+		printf("End of parsing the output!");	
 		pclose(fp);	
 		fclose(simpleTmp); 
 		fclose(detailTmp);
@@ -752,8 +760,16 @@ Handle<Value> EchldWrapper::Dissect(const Arguments& args) {
 	output = (char *)malloc((end - start) * sizeof(char)+1);
 	fseek(detailTmp, start, SEEK_SET);
 	fread(output, end - start, 1, detailTmp); 
+	for(int i = 0; i < end - start; i++) {
+		if (output[i] < 32) {
+			output[i] = ' ';
+		}
+		if (output[i] == 34) {
+			output[i] = 39;
+		}
+	}
 	output[end - start] = '\0';
-	printf("Dissect output is %s\n", output);
+	//printf("Dissect output is %s\n", output);
 	Local<Object> obj = Object::New();
 	obj->Set(String::NewSymbol("msg"), String::NewSymbol(output));
 

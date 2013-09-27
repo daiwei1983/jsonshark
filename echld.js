@@ -24,6 +24,10 @@ process.on('message', function(m) {
 		});*/
 		console.log('m.content.interfaces.toString(): ' + m.content.interfaces.toString());
 		console.log('m.id: ' + m.id);
+		if (fs.existsSync('./public/tmp/simple.'+m.id)) {
+			fs.unlinkSync('./public/tmp/simple.'+m.id);
+			console.log('successfully deleted ./public/tmp/simple.'+m.id);
+		}
 		var pid = echld.capture(m.id.toString(), m.content.interfaces.toString(), m.content.options, m.content.filter);
 		if (pid < 0) {
 			message = new Object();
@@ -47,7 +51,7 @@ process.on('message', function(m) {
 				var packets = JSON.parse(newData);
 				for(var i=0; i<packets.length; i++) {
 				var message = new Object();
-					message.status = "captureSuccess";
+					message.status = 'captureSuccess';
 					message.id = m.id;
 					message.info = packets[i];
 					process.send(message);
@@ -58,16 +62,34 @@ process.on('message', function(m) {
 			console.log('tail error output:', data);
 		});
 		monitors["capture" + m.id] = monitor;
+		if (m.content.options > 0) {
+			var time = m.content.options * 1000;
+			console.log('send stop message to wrapper after time ' + time);
+			var timeout = setTimeout(function() {
+				console.log('echld is closing by setting timeout: ' + echldIds[m.id]);
+				var state = echld.stop(echldIds[m.id]);
+				message = new Object();
+				message.id = m.id;
+				if (state < 0) {
+					message.status = "stopCaptureFailed";
+				}
+				if (monitors["capture" + m.id] != null) {
+					monitors["capture" + m.id].kill();
+				}
+				message.status = 'stopSuccess';
+				console.log('echild stopped capturing packets.');
+				process.send(message);
+			}, time);
+		}
 	}
 	else if (m.type === 'dissect') {
 		console.log('begin to call echld.dissect() from JS.');
 		
 		var state = echld.dissect(m.id.toString(), m.content.packetId);
 		newData = new String(state.msg);
-		newData = newData.replace("\]", "]");
 		newData = newData.replace("\\","/");
+		newData = newData.replace(/[\r\n]/ig, "");
 		console.log("data is: " + state.msg);
-		newData = newData.replace(/(\r\n|\n|\r)/gm,"");
 		var packetInfo = JSON.parse(state.msg);
 		packetInfo.packetId = m.content.packetId;
 		var message = new Object();
@@ -79,6 +101,10 @@ process.on('message', function(m) {
 	}
 	else if (m.type === 'openFile') {
 		console.log('echld is openning files.');
+		if (fs.existsSync('./public/tmp/simple.'+m.id)) {
+			fs.unlinkSync('./public/tmp/simple.'+m.id);
+			console.log('successfully deleted ./public/tmp/simple.'+m.id);
+		}
 		var pid = echld.openFile(m.id.toString(), m.content.files[0].toString());
 		if (pid < 0) {
 			message = new Object();
